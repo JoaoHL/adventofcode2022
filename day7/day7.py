@@ -54,4 +54,15 @@ with open(filename, 'r') as file:
         info = dir_info[directory]
         if info['size'] <= 100000:
             result += info['size']
-    print(result)
+
+    # parte 2
+    dir_sizes = list()
+    for directory in dir_info:
+        dir_sizes.append((directory, dir_info[directory]['size']))
+    dir_sizes.sort(key=lambda x: x[1]) #ordena ascendente comparando tamanhos dos diretorios
+    needed_space = 30000000 - (70000000 - dir_info['/']['size'])
+    for size in dir_sizes:
+        if size[1] >= needed_space:
+            print(size)
+            break
+
