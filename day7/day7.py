@@ -10,40 +10,48 @@ def is_ls(split_command: list):
     return split_command[-1] == "ls"
 
 
+def build_dir_name(path: list, directory: str):
+    return ''.join(path) + directory
+
+
+def calculate_dir_size(dir_infos: dict, directory: str):
+    info = dir_infos[directory]
+    if len(info['subdirs']) == 0:
+        return info['size']
+    for sub_dir in info['subdirs']:
+        info['size'] += calculate_dir_size(dir_infos, sub_dir)
+    return info['size']
+
+
 filename = input()
 # parte 1
 with open(filename, 'r') as file:
     dir_info = dict()
     dir_stack = list()
 
+    # calcular primeiro os tamanhos dos arquivos e os subdiretórios
     for command in file:
         command = command.strip().split()
 
+        current_dir = build_dir_name(dir_stack, '') if len(dir_stack) > 0 else ''
         if is_cd_command(command):
-            if command[-1] != "..":  # deu cd pra um diretório
-                dir_info[command[-1]] = {'size': 0, 'subdirs': []}
+            if command[-1] != "..":  # deu cd pra um diretório, guarda na pilha pra saber onde estamos
                 dir_stack.append(command[-1])
-            else:  # saímos do diretório, calculamos o que tinha pra calcular dentro, podemos calcular o diretório do qual estamos saindo
+            else:  # voltamos pro diretório anterior, só dar pop na pilha pra gente se situar
                 current_dir = dir_stack.pop()
-                for subdir in dir_info[current_dir]['subdirs']:
-                    dir_info[current_dir]['size'] += dir_info[subdir]['size']
-        elif is_subdir(command):  # é subdiretório
-            dir_info[dir_stack[-1]]['subdirs'].append(command[-1])
-        elif is_ls(command):  # ignora ls
-            continue
-        else:  # é um arquivo
+        elif is_ls(command):  # vai listar conteúdo do diretório atual, então inicializa as informações dele
+            dir_info[current_dir] = {'size': 0, 'subdirs': []}
+        elif is_subdir(command):  # adiciona subdiretório na lista de subdiretórios do diretório atual
+            dir_info[current_dir]['subdirs'].append(build_dir_name(dir_stack, command[-1]))
+        else:  # é um arquivo, soma tamanho dele
             file_size = int(command[0])
-            dir_info[dir_stack[-1]]['size'] += file_size
-
-    # processa os diretório que sobraram
-    for current_dir in reversed(dir_stack):
-        for subdir in dir_info[current_dir]['subdirs']:
-            dir_info[current_dir]['size'] += dir_info[subdir]['size']
+            dir_info[current_dir]['size'] += file_size
 
     # calcula resultado do desafio
-    total_size = 0
+    calculate_dir_size(dir_info, '/')
+    result = 0
     for directory in dir_info:
         info = dir_info[directory]
-        total_size += info['size'] if info['size'] <= 100000 else 0
-    print(dir_info)
-    print(total_size)
+        if info['size'] <= 100000:
+            result += info['size']
+    print(result)
